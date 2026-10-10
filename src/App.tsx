@@ -81,6 +81,7 @@ export default function App() {
         ...rawState.account,
         availableBalance: derived.availableBalance,
         monthlyExpenses: derived.monthlyExpenses,
+        monthlyIncome: derived.monthlyIncome,
         reserveBuffer: derived.reserveBuffer,
       },
       health: derived.health,
@@ -371,7 +372,14 @@ export default function App() {
               />
             )}
 
-            {currentPage === 'simulator' && <FutureSimulatorView state={state} />}
+            {currentPage === 'simulator' && (
+              <FutureSimulatorView
+                state={state}
+                onSaveIncomeBaseline={(income) => {
+                  handleSaveAccountSetup({ monthlySalary: income, monthlyIncome: income });
+                }}
+              />
+            )}
 
             {currentPage === 'insights' && (
               <InsightsView

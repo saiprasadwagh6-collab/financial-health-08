@@ -7,6 +7,7 @@ export const INITIAL_DATA: AppState = {
     availableBalance: 0,
     openingBalance: 0,
     monthlySalary: 0,
+    monthlyIncome: 0,
     salaryCreditDay: 1,
     primaryBank: '',
     isSetupCompleted: false,

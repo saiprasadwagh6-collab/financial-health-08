@@ -83,6 +83,7 @@ export interface UserAccount {
   availableBalance: number;
   openingBalance: number;
   monthlySalary: number;
+  monthlyIncome: number;
   salaryCreditDay: number;
   primaryBank: string;
   isSetupCompleted: boolean;
