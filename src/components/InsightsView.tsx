@@ -4,7 +4,7 @@ import { InsightItem, PageId } from '../types';
 
 interface InsightsViewProps {
   insights: InsightItem[];
-  onNavigate: (page: PageId) => void;
+  onNavigate: (page: PageId, categoryFilter?: string) => void;
   onOpenImportModal?: () => void;
 }
 
@@ -69,7 +69,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
           <div className="pt-2">
             <button
               onClick={() => onNavigate('transactions')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#064E49] text-white text-xs sm:text-sm font-bold hover:bg-[#176B62] transition shadow-xs"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#064E49] text-white text-xs sm:text-sm font-bold hover:bg-[#176B62] transition shadow-xs cursor-pointer"
             >
               <UploadCloud className="w-4 h-4 text-[#F3D58A]" />
               <span>Go to Transactions & Upload</span>
@@ -86,11 +86,18 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
               )}`}
             >
               <div>
-                <div className="flex items-center gap-3">
-                  <span className="p-2 rounded-xl bg-white/80 shadow-xs">
-                    {getIcon(ins.tone)}
-                  </span>
-                  <h3 className="font-bold text-base text-[#102C2B]">{ins.title}</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="p-2 rounded-xl bg-white/80 shadow-xs">
+                      {getIcon(ins.tone)}
+                    </span>
+                    <h3 className="font-bold text-base text-[#102C2B]">{ins.title}</h3>
+                  </div>
+                  {ins.categoryFilter && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#064E49]/10 text-[#064E49] border border-[#064E49]/20">
+                      {ins.categoryFilter}
+                    </span>
+                  )}
                 </div>
 
                 {/* Evidence box */}
@@ -106,8 +113,8 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
 
               <div className="pt-2">
                 <button
-                  onClick={() => onNavigate(ins.page)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#064E49] text-white text-xs font-bold hover:bg-[#176B62] transition shadow-xs"
+                  onClick={() => onNavigate(ins.page, ins.categoryFilter)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#064E49] text-white text-xs font-bold hover:bg-[#176B62] transition shadow-xs cursor-pointer"
                 >
                   <span>{ins.linkLabel}</span>
                   <ArrowRight className="w-3.5 h-3.5" />

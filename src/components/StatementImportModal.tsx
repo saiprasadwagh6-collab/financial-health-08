@@ -10,6 +10,8 @@ import {
   Clipboard,
   Settings2,
   HelpCircle,
+  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { Transaction } from '../types';
 import { formatINR } from '../utils/formatters';
@@ -34,6 +36,8 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
   const [pastedText, setPastedText] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isAiCategorizing, setIsAiCategorizing] = useState<boolean>(false);
+  const [aiCategorizedCount, setAiCategorizedCount] = useState<number>(0);
 
   // Manual column mapping fallback state
   const [showColumnMapper, setShowColumnMapper] = useState<boolean>(false);
@@ -137,37 +141,146 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
   };
 
   // -------------------------------------------------------------
-  // Smart Category Tagger
+  // Smart Category Classifier & AI Categorizer
   // -------------------------------------------------------------
   const categorizeNarration = (narration: string, isIncome: boolean): string => {
     if (isIncome) return 'Income';
     const text = narration.toLowerCase();
 
-    if (/swiggy|zomato|starbucks|mcdonald|kfc|pizza|food|restaurant|cafe|eat|dining|burger|subway|blinkit|zepto|instamart|grocery|supermarket|dmart|baker/i.test(text)) {
+    // 1. Investments & Savings
+    if (
+      /zerodha|groww|upstox|angel\s*one|kuvera|indmoney|coin|kite|mf|mutual\s*fund|sip|uti|sbi\s*mf|hdfc\s*mf|icici\s*pru|nippon|axis\s*mf|mirae|ppfas|parag\s*parikh|shares|equity|stock|demat|cdsl|nsdl|bse|nse|crypto|binance|wazirx|coindcx|gold|sovereign|sbg|fd|fixed\s*deposit|rd|recurring|nps|ppf|lic|pension|bonds|dividend|smallcase/i.test(
+        text
+      )
+    ) {
+      return 'Investment';
+    }
+
+    // 2. Food & Groceries & Dining
+    if (
+      /swiggy|zomato|starbucks|mcdonald|kfc|pizza|domino|burger|subway|blinkit|zepto|instamart|bbnow|bigbasket|dmart|grocery|supermarket|kirana|restaurant|cafe|chai|tea|coffee|bakery|bake|baker|sweets|mithai|dining|eat|barbeque|bistro|dhaba|mess|kitchen|haldiram|food|beverage|dunkin/i.test(
+        text
+      )
+    ) {
       return 'Food';
     }
-    if (/amazon|flipkart|myntra|ajio|zara|h&m|shopping|retail|cloth|mall|store|electronics|croma|reliance digital/i.test(text)) {
-      return 'Shopping';
-    }
-    if (/uber|ola|rapido|metro|petrol|diesel|fuel|hpcl|bpcl|ioc|toll|fastag|parking|auto|cab|train|irctc|flight|air|indigo|vistara/i.test(text)) {
-      return 'Transport';
-    }
-    if (/rent|maintenance|society|housing|landlord|flat|pg|brokerage/i.test(text)) {
+
+    // 3. Housing & Rent
+    if (
+      /rent|landlord|maintenance|society|housing|flat|apartment|pg|hostel|brokerage|nobroker|nestaway|property\s*tax|maintenance\s*charge|house\s*rent|room\s*rent/i.test(
+        text
+      )
+    ) {
       return 'Housing';
     }
-    if (/electricity|water|gas|broadband|wifi|jio|airtel|vi|bescom|msedcl|tneb|recharge|dth|tata sky|postpaid|bill/i.test(text)) {
+
+    // 4. Utilities & Bills
+    if (
+      /electricity|power|bescom|msedcl|tneb|cesc|dhbvn|torrent|water\s*bill|gas|indane|bharat\s*gas|hp\s*gas|piped\s*gas|wifi|broadband|act\s*fibernet|airtel\s*broadband|jio\s*fiber|hathway|recharge|prepaid|postpaid|airtel|jio|vodafone|vi|bsnl|dth|tata\s*sky|tata\s*play|dish\s*tv|sun\s*direct|utility|billdesk|bbps/i.test(
+        text
+      )
+    ) {
       return 'Utilities';
     }
-    if (/hospital|clinic|pharmacy|apollo|medplus|doctor|health|diagnostics|dentist|cult\.fit|gym|fitness|pharma/i.test(text)) {
+
+    // 5. Transport & Travel & Fuel
+    if (
+      /uber|ola|rapido|blusmart|namma\s*yatri|auto|cab|taxi|metro|delhi\s*metro|bmrc|irctc|indian\s*railway|train|flight|indigo|air\s*india|vistara|spicejet|akasa|makemytrip|goibibo|cleartrip|yatra|redbus|abhibus|petrol|diesel|fuel|cng|hpcl|bpcl|ioc|indian\s*oil|shell|toll|fastag|nhai|parking|challan|mechanic|service\s*center/i.test(
+        text
+      )
+    ) {
+      return 'Transport';
+    }
+
+    // 6. Health & Pharmacy
+    if (
+      /hospital|clinic|doctor|pharmacy|chemist|apollo|medplus|netmeds|1mg|tata\s*1mg|pharmeasy|practo|dentist|dental|diagnostics|lal\s*path|metropolis|thyrocare|cult\.fit|cultfit|gym|fitness|yoga|opticals|lenskart|health\s*insurance|mediclaim|max\s*bupa|star\s*health|care\s*health|medication|pharma/i.test(
+        text
+      )
+    ) {
       return 'Health';
     }
-    if (/school|college|udemy|coursera|tuition|course|exam|education|fees|university|books|stationery/i.test(text)) {
+
+    // 7. Education
+    if (
+      /school|college|university|tuition|coaching|allen|aakash|fiitjee|byju|unacademy|udemy|coursera|edx|upgrad|scaler|course|exam|fees|books|kindle|stationery|library/i.test(
+        text
+      )
+    ) {
       return 'Education';
     }
-    if (/netflix|spotify|prime|hotstar|pvr|inox|bookmyshow|cinema|movie|game|steam|playstation/i.test(text)) {
+
+    // 8. Entertainment
+    if (
+      /netflix|spotify|amazon\s*prime|prime\s*video|hotstar|disney|apple\s*music|youtube\s*premium|pvr|inox|cinepolis|bookmyshow|movie|cinema|steam|playstation|xbox|nintendo|game|gaming|amusement|resort|club/i.test(
+        text
+      )
+    ) {
       return 'Entertainment';
     }
-    return 'Shopping';
+
+    // 9. Personal Care
+    if (
+      /salon|spa|parlour|barber|haircut|enrich|geometrix|urban\s*company|unisex|cosmetics|nykaa|purplle|sephora|skincare/i.test(
+        text
+      )
+    ) {
+      return 'Personal Care';
+    }
+
+    // 10. Shopping (genuine retail)
+    if (
+      /amazon|flipkart|myntra|ajio|tata\s*cliq|meesho|zara|h&m|uniqlo|westside|pantaloons|lifestyle|shoppers\s*stop|max\s*fashion|decathlon|croma|reliance\s*digital|vijay\s*sales|apple\s*store|ikea|furniture|mall|retail|store|clothing|apparel/i.test(
+        text
+      )
+    ) {
+      return 'Shopping';
+    }
+
+    return 'Other';
+  };
+
+  const runAiCategorization = async (
+    rows: (Omit<Transaction, 'id'> & { selected: boolean })[]
+  ) => {
+    if (rows.length === 0) return;
+    setIsAiCategorizing(true);
+    try {
+      const payload = rows.map((r, i) => ({
+        id: `tx-${i}`,
+        merchant: r.merchant,
+        description: r.description,
+        amount: r.amount,
+      }));
+
+      const res = await fetch('/api/categorize-transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: payload }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.categorized && Array.isArray(data.categorized)) {
+          const catMap = new Map<string, string>();
+          for (const item of data.categorized) {
+            catMap.set(String(item.id), item.category);
+          }
+
+          setParsedRows((prev) =>
+            prev.map((r, i) => {
+              const aiCat = catMap.get(`tx-${i}`);
+              return aiCat ? { ...r, category: aiCat } : r;
+            })
+          );
+          setAiCategorizedCount(rows.length);
+        }
+      }
+    } catch (e) {
+      console.warn('AI categorization request error:', e);
+    } finally {
+      setIsAiCategorizing(false);
+    }
   };
 
   // -------------------------------------------------------------
@@ -386,6 +499,7 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
       setParsedRows(extractedTransactions);
       setErrorMessage('');
       setStep('review');
+      runAiCategorization(extractedTransactions);
     }
   };
 
@@ -516,6 +630,7 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
       setParsedRows(extracted);
       setShowColumnMapper(false);
       setStep('review');
+      runAiCategorization(extracted);
     }
   };
 
@@ -784,6 +899,35 @@ export const StatementImportModal: React.FC<StatementImportModalProps> = ({
                   <strong className="text-sm text-[#D94343]">-{formatINR(totalExpense)}</strong>
                 </div>
               </div>
+
+              {/* AI Categorization Status Banner */}
+              {isAiCategorizing ? (
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#064E49]/10 border border-[#064E49]/20 text-xs text-[#064E49] font-medium animate-pulse">
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles className="w-4 h-4 text-[#A9822F] animate-spin shrink-0" />
+                    <span>
+                      <strong>AI Smart Categorization Active:</strong> Accurately distributing expenses across Investment, Food, Housing, Utilities, Transport, Health, Entertainment...
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-[#2E7655]/10 border border-[#2E7655]/20 text-xs text-[#2E7655]">
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles className="w-4 h-4 text-[#2E7655] shrink-0" />
+                    <span>
+                      <strong>AI Auto-Categorized:</strong> Transactions classified with intelligence. You can review or manually adjust categories below.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => runAiCategorization(parsedRows)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2E7655] text-white text-[11px] font-bold hover:bg-[#245D43] transition cursor-pointer self-start sm:self-auto shadow-xs"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Re-categorize with AI</span>
+                  </button>
+                </div>
+              )}
 
               <div className="overflow-x-auto rounded-2xl border border-[#E8DDC4] max-h-80">
                 <table className="w-full text-left text-xs">

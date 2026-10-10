@@ -16,6 +16,9 @@ import {
   Zap,
   Heart,
   Film,
+  TrendingUp,
+  Sparkles,
+  HelpCircle,
 } from 'lucide-react';
 import { Transaction } from '../types';
 import { formatINR, formatSignedINR, formatDate } from '../utils/formatters';
@@ -23,8 +26,11 @@ import { formatINR, formatSignedINR, formatDate } from '../utils/formatters';
 interface TransactionsViewProps {
   transactions: Transaction[];
   categories: string[];
+  selectedCategory?: string;
+  onSelectCategory?: (category: string) => void;
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
   onDeleteTransaction: (id: string) => void;
+  onBulkUpdateTransactions?: (updatedTxs: Transaction[]) => void;
   onOpenImportModal: () => void;
   selectedTxForDetail: Transaction | null;
   onSelectTxForDetail: (tx: Transaction | null) => void;
@@ -33,14 +39,29 @@ interface TransactionsViewProps {
 export const TransactionsView: React.FC<TransactionsViewProps> = ({
   transactions,
   categories,
+  selectedCategory: controlledCategory,
+  onSelectCategory,
   onAddTransaction,
   onDeleteTransaction,
+  onBulkUpdateTransactions,
   onOpenImportModal,
   selectedTxForDetail,
   onSelectTxForDetail,
 }) => {
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [internalCategory, setInternalCategory] = useState('All');
+  const [isAiCategorizingLedger, setIsAiCategorizingLedger] = useState(false);
+
+  // Sync controlled category when changed by parent (e.g. from Insights tab redirect)
+  const activeCategory = controlledCategory !== undefined ? controlledCategory : internalCategory;
+
+  const handleSetCategory = (cat: string) => {
+    setInternalCategory(cat);
+    if (onSelectCategory) {
+      onSelectCategory(cat);
+    }
+  };
+
   const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -56,7 +77,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 
   // Filtering
   const filtered = transactions.filter((t) => {
-    if (selectedCategory !== 'All' && t.category !== selectedCategory) return false;
+    if (activeCategory !== 'All' && t.category !== activeCategory) return false;
     if (selectedType === 'income' && t.amount <= 0) return false;
     if (selectedType === 'expense' && t.amount >= 0) return false;
     if (search.trim()) {
@@ -77,6 +98,44 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     .filter((t) => t.amount < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   const netFlow = totalIncome - totalExpense;
+
+  const handleRunAiCategorizeAll = async () => {
+    if (transactions.length === 0 || !onBulkUpdateTransactions) return;
+    setIsAiCategorizingLedger(true);
+    try {
+      const payload = transactions.map((t) => ({
+        id: t.id,
+        merchant: t.merchant,
+        description: t.description,
+        amount: t.amount,
+      }));
+
+      const res = await fetch('/api/categorize-transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: payload }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.categorized && Array.isArray(data.categorized)) {
+          const map = new Map<string, string>();
+          for (const item of data.categorized) {
+            map.set(String(item.id), item.category);
+          }
+          const updated = transactions.map((t) => {
+            const newCat = map.get(t.id);
+            return newCat ? { ...t, category: newCat } : t;
+          });
+          onBulkUpdateTransactions(updated);
+        }
+      }
+    } catch (e) {
+      console.warn('AI bulk categorization error:', e);
+    } finally {
+      setIsAiCategorizingLedger(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +169,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
+      case 'Investment':
+        return <TrendingUp className="w-3.5 h-3.5 text-[#064E49]" />;
       case 'Food':
         return <Utensils className="w-3.5 h-3.5 text-[#D94343]" />;
       case 'Income':
@@ -128,6 +189,10 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         return <Heart className="w-3.5 h-3.5 text-[#B23A3A]" />;
       case 'Entertainment':
         return <Film className="w-3.5 h-3.5 text-[#5B3FA8]" />;
+      case 'Personal Care':
+        return <Sparkles className="w-3.5 h-3.5 text-[#C05621]" />;
+      case 'Other':
+        return <HelpCircle className="w-3.5 h-3.5 text-[#68746D]" />;
       default:
         return <CreditCard className="w-3.5 h-3.5 text-[#68746D]" />;
     }
@@ -214,25 +279,39 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             </select>
           </div>
 
-          {/* Add Transaction Button */}
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#064E49] text-white text-xs sm:text-sm font-bold hover:bg-[#176B62] transition shadow-xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Transaction</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {onBulkUpdateTransactions && transactions.length > 0 && (
+              <button
+                onClick={handleRunAiCategorizeAll}
+                disabled={isAiCategorizingLedger}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#2E7655]/40 bg-[#2E7655]/10 text-[#2E7655] text-xs sm:text-sm font-bold hover:bg-[#2E7655]/20 transition shadow-xs cursor-pointer disabled:opacity-50"
+                title="Classify all ledger transactions using AI"
+              >
+                <Sparkles className="w-4 h-4 text-[#A9822F]" />
+                <span>{isAiCategorizingLedger ? 'Categorizing...' : 'AI Categorize Ledger'}</span>
+              </button>
+            )}
+
+            {/* Add Transaction Button */}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#064E49] text-white text-xs sm:text-sm font-bold hover:bg-[#176B62] transition shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Transaction</span>
+            </button>
+          </div>
         </div>
 
         {/* Category Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1">
           {['All', ...categories].map((c) => {
-            const active = selectedCategory === c;
+            const active = activeCategory === c;
             return (
               <button
                 key={c}
-                onClick={() => setSelectedCategory(c)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                onClick={() => handleSetCategory(c)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   active
                     ? 'bg-[#064E49] text-white shadow-xs'
                     : 'bg-[#FCF9F1] border border-[#E8DDC4] text-[#68746D] hover:border-[#D9B45B] hover:text-[#102C2B]'
@@ -243,6 +322,25 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             );
           })}
         </div>
+
+        {/* Inspection / Active Category Filter Banner */}
+        {activeCategory !== 'All' && (
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-[#064E49]/10 border border-[#064E49]/20 text-xs text-[#064E49]">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-[#A9822F]" />
+              <span>
+                Inspecting <strong>{activeCategory}</strong> transactions ({filtered.length} found • Total {totalExpense > 0 ? `Outflow: ${formatINR(totalExpense)}` : totalIncome > 0 ? `Inflow: ${formatINR(totalIncome)}` : '₹0'})
+              </span>
+            </div>
+            <button
+              onClick={() => handleSetCategory('All')}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#064E49] text-white font-bold hover:bg-[#176B62] transition cursor-pointer text-[11px]"
+            >
+              <X className="w-3 h-3" />
+              <span>Show All Categories</span>
+            </button>
+          </div>
+        )}
 
         {/* Transactions Table */}
         <div className="overflow-x-auto rounded-2xl border border-[#E8DDC4]/60">

@@ -15,7 +15,8 @@ export interface DerivedFinancials {
 
 // Categorization helper for 50/30/20 benchmark
 const NEEDS_CATEGORIES = new Set(['Housing', 'Utilities', 'Health', 'Education', 'Transport']);
-const WANTS_CATEGORIES = new Set(['Food', 'Shopping', 'Entertainment']);
+const WANTS_CATEGORIES = new Set(['Food', 'Shopping', 'Entertainment', 'Personal Care']);
+const SAVINGS_CATEGORIES = new Set(['Investment']);
 
 export function calculateRealFinancials(
   account: UserAccount,
@@ -62,10 +63,13 @@ export function calculateRealFinancials(
   // 3. Spending Split (Needs vs Wants vs Savings)
   let needsSum = 0;
   let wantsSum = 0;
+  let investmentSum = 0;
   for (const t of transactions) {
     if (t.amount < 0) {
       const absAmt = Math.abs(t.amount);
-      if (NEEDS_CATEGORIES.has(t.category)) {
+      if (SAVINGS_CATEGORIES.has(t.category)) {
+        investmentSum += absAmt;
+      } else if (NEEDS_CATEGORIES.has(t.category)) {
         needsSum += absAmt;
       } else if (WANTS_CATEGORIES.has(t.category)) {
         wantsSum += absAmt;
@@ -202,17 +206,27 @@ export function calculateRealFinancials(
       categoryTotals[t.category] = (categoryTotals[t.category] || 0) + Math.abs(t.amount);
     }
   }
-  const topCat = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
-  if (topCat) {
-    const topPct = monthlyExpenses > 0 ? Math.round((topCat[1] / monthlyExpenses) * 100) : 0;
+  const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+  const topCat = sortedCategories[0];
+  if (topCat && topCat[1] > 0) {
+    const [topCatName, topCatAmount] = topCat;
+    const totalOutflows = monthlyExpenses > 0 ? monthlyExpenses : Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+    const topPct = totalOutflows > 0 ? Math.round((topCatAmount / totalOutflows) * 100) : 0;
+    const isInvestment = topCatName.toLowerCase() === 'investment';
+
     insights.push({
       id: 'ins-top-expense',
-      title: `${topCat[0]} Spending Concentration`,
-      tone: topPct > 35 ? 'warning' : 'info',
-      evidence: `${formatINR(topCat[1])} spent on ${topCat[0]} (${topPct}% of all recorded outflows)`,
-      explanation: `${topCat[0]} represents your highest expenditure category. Monitoring this category will yield the highest savings leverage.`,
+      title: isInvestment
+        ? `Peak Capital Allocation: ${topCatName}`
+        : `Maximum Spending: ${topCatName} (${topPct}%)`,
+      tone: isInvestment ? 'success' : topPct > 35 ? 'warning' : 'info',
+      evidence: `${formatINR(topCatAmount)} in ${topCatName} (${topPct}% of your total outflows)`,
+      explanation: isInvestment
+        ? `You invest the maximum share of your funds (${formatINR(topCatAmount)}) in ${topCatName}. Click Inspect Transactions to review your portfolio allocations.`
+        : `You spend your maximum money (${formatINR(topCatAmount)}) on ${topCatName} out of all your expenses. Click below to inspect transactions in this category.`,
       page: 'transactions',
-      linkLabel: 'Inspect Transactions',
+      categoryFilter: topCatName,
+      linkLabel: `Inspect ${topCatName} Transactions`,
     });
   }
 

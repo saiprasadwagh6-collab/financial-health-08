@@ -73,6 +73,7 @@ export interface InsightItem {
   evidence: string;
   explanation: string;
   page: PageId;
+  categoryFilter?: string;
   linkLabel: string;
 }
 

@@ -43,12 +43,20 @@ export default function App() {
   });
 
   const [currentPage, setCurrentPage] = useState<PageId>('overview');
+  const [transactionCategoryFilter, setTransactionCategoryFilter] = useState<string>('All');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isAuthMode, setIsAuthMode] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAccountSetupModalOpen, setIsAccountSetupModalOpen] = useState(false);
   const [selectedTxForDetail, setSelectedTxForDetail] = useState<Transaction | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleNavigate = (page: PageId, categoryFilter?: string) => {
+    if (categoryFilter) {
+      setTransactionCategoryFilter(categoryFilter);
+    }
+    setCurrentPage(page);
+  };
 
   // Automatically open the Bank Balance setup dialog on first launch if not configured yet
   useEffect(() => {
@@ -145,6 +153,15 @@ export default function App() {
       transactions: prev.transactions.filter((t) => t.id !== id),
     }));
     showToast('Transaction removed from ledger.');
+  };
+
+  // Bulk update transactions with AI categories
+  const handleBulkUpdateTransactions = (updatedTxs: Transaction[]) => {
+    setRawState((prev) => ({
+      ...prev,
+      transactions: updatedTxs,
+    }));
+    showToast(`Categorized ${updatedTxs.length} transactions with AI!`);
   };
 
   // Confirm Import of Real Statement
@@ -259,7 +276,7 @@ export default function App() {
         {/* Sidebar */}
         <Sidebar
           currentPage={currentPage}
-          onNavigate={(p) => setCurrentPage(p)}
+          onNavigate={handleNavigate}
           userName={state.account.name}
           isMobileOpen={isMobileNavOpen}
           onCloseMobile={() => setIsMobileNavOpen(false)}
@@ -274,7 +291,7 @@ export default function App() {
             onOpenMobileNav={() => setIsMobileNavOpen(true)}
             notifications={state.notifications}
             onSelectNotification={(n) => {
-              setCurrentPage(n.page);
+              handleNavigate(n.page);
             }}
             onMarkAllRead={() => {
               setRawState((prev) => ({
@@ -285,13 +302,13 @@ export default function App() {
             transactions={state.transactions}
             goals={state.goals}
             insights={state.insights}
-            onNavigate={(p) => setCurrentPage(p)}
+            onNavigate={handleNavigate}
             onSelectTransaction={(t) => {
               setSelectedTxForDetail(t);
-              setCurrentPage('transactions');
+              handleNavigate('transactions');
             }}
             onSelectGoal={(g) => {
-              setCurrentPage('goals');
+              handleNavigate('goals');
             }}
             isAuthMode={isAuthMode}
             onToggleAuthMode={() => setIsAuthMode(true)}
@@ -303,13 +320,13 @@ export default function App() {
             {currentPage === 'overview' && (
               <OverviewView
                 state={state}
-                onNavigate={(p) => setCurrentPage(p)}
+                onNavigate={handleNavigate}
                 onSelectTransaction={(t) => {
                   setSelectedTxForDetail(t);
-                  setCurrentPage('transactions');
+                  handleNavigate('transactions');
                 }}
                 onSelectGoal={(g) => {
-                  setCurrentPage('goals');
+                  handleNavigate('goals');
                 }}
                 onOpenImportModal={() => setIsImportModalOpen(true)}
                 onOpenAccountSetup={() => setIsAccountSetupModalOpen(true)}
@@ -320,8 +337,11 @@ export default function App() {
               <TransactionsView
                 transactions={state.transactions}
                 categories={state.categories}
+                selectedCategory={transactionCategoryFilter}
+                onSelectCategory={setTransactionCategoryFilter}
                 onAddTransaction={handleAddTransaction}
                 onDeleteTransaction={handleDeleteTransaction}
+                onBulkUpdateTransactions={handleBulkUpdateTransactions}
                 onOpenImportModal={() => setIsImportModalOpen(true)}
                 selectedTxForDetail={selectedTxForDetail}
                 onSelectTxForDetail={setSelectedTxForDetail}
@@ -356,7 +376,7 @@ export default function App() {
             {currentPage === 'insights' && (
               <InsightsView
                 insights={state.insights}
-                onNavigate={(p) => setCurrentPage(p)}
+                onNavigate={handleNavigate}
                 onOpenImportModal={() => setIsImportModalOpen(true)}
               />
             )}
