@@ -1,0 +1,6 @@
+{
+  "name": "Financial Flight Simulator",
+  "description": "Arthdrishti Financial Flight Simulator - AI-powered personal finance platform to predict risk, balance cash flow, simulate domino impacts, and optimize goals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
