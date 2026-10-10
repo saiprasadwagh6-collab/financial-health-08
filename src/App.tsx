@@ -395,6 +395,8 @@ export default function App() {
               <ReportsView
                 transactions={state.transactions}
                 categories={state.categories}
+                account={state.account}
+                goals={state.goals}
               />
             )}
 
