@@ -25,12 +25,17 @@
   --row-bg: #FCF8EE;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+
 body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   color: var(--text-primary);
   background: radial-gradient(1200px 600px at 10% 0%, #F3EBD8 0%, transparent 60%), #EEE4CD;
   min-height: 100vh;
-  margin: 0;
   -webkit-font-smoothing: antialiased;
 }
 

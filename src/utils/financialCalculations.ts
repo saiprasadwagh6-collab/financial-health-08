@@ -32,27 +32,64 @@ export function calculateRealFinancials(
   const openingBal = account.openingBalance || 0;
   const availableBalance = openingBal + netFromTransactions;
 
-  // 1. Inflow and Outflow analysis
-  const txByMonth = new Map<string, { income: number; expense: number; txs: Transaction[] }>();
+  // 1. Inflow and Outflow analysis across all transactions
+  const totalInflow = transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalOutflow = transactions.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  const txByMonth = new Map<string, { income: number; expense: number; count: number }>();
   for (const t of transactions) {
     const monthKey = t.date ? t.date.slice(0, 7) : 'Unknown';
     if (!txByMonth.has(monthKey)) {
-      txByMonth.set(monthKey, { income: 0, expense: 0, txs: [] });
+      txByMonth.set(monthKey, { income: 0, expense: 0, count: 0 });
     }
     const entry = txByMonth.get(monthKey)!;
-    entry.txs.push(t);
+    entry.count += 1;
     if (t.amount > 0) entry.income += t.amount;
     else entry.expense += Math.abs(t.amount);
   }
 
-  const sortedMonths = Array.from(txByMonth.keys()).sort();
-  const latestMonthKey = sortedMonths[sortedMonths.length - 1];
-  const latestMonthData = txByMonth.get(latestMonthKey);
+  // Active calendar months with actual transaction activity
+  const activeMonthEntries = Array.from(txByMonth.entries()).filter(
+    ([k, v]) => k !== 'Unknown' && (v.income > 0 || v.expense > 0)
+  );
+  const activeMonthsCount = Math.max(1, activeMonthEntries.length);
 
-  let recordedIncome = latestMonthData ? latestMonthData.income : transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const recordedExpenses = latestMonthData ? latestMonthData.expense : transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  let recordedIncome = 0;
+  let recordedExpenses = 0;
 
-  // If user provided a declared monthly salary, factor it in if statement doesn't have an explicit salary entry
+  if (activeMonthEntries.length > 0) {
+    activeMonthEntries.sort((a, b) => a[0].localeCompare(b[0]));
+    const latestMonth = activeMonthEntries[activeMonthEntries.length - 1][1];
+    const avgMonthlyExpense = totalOutflow / activeMonthsCount;
+    const avgMonthlyIncome = totalInflow / activeMonthsCount;
+
+    // Use latest month if representative (has substantial activity), otherwise monthly average
+    if (latestMonth.expense >= avgMonthlyExpense * 0.5 && latestMonth.expense > 0) {
+      recordedExpenses = Math.round(latestMonth.expense);
+    } else {
+      recordedExpenses = Math.round(avgMonthlyExpense);
+    }
+
+    if (latestMonth.income >= avgMonthlyIncome * 0.5 && latestMonth.income > 0) {
+      recordedIncome = Math.round(latestMonth.income);
+    } else {
+      recordedIncome = Math.round(avgMonthlyIncome);
+    }
+  } else {
+    recordedIncome = totalInflow;
+    recordedExpenses = totalOutflow;
+  }
+
+  // Ensure outflows from transactions are always captured
+  if (totalOutflow > 0 && recordedExpenses === 0) {
+    recordedExpenses = totalOutflow;
+  }
+  // Ensure inflows from transactions are always captured
+  if (totalInflow > 0 && recordedIncome === 0) {
+    recordedIncome = totalInflow;
+  }
+
+  // If user provided a declared monthly salary, factor it in
   const monthlySalary = account.monthlySalary || 0;
   const monthlyIncome = Math.max(recordedIncome, monthlySalary);
   const monthlyExpenses = recordedExpenses;

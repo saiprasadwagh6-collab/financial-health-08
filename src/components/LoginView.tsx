@@ -12,6 +12,7 @@ import {
   Mail,
   Lock,
 } from 'lucide-react';
+import { ArthDrishtiLogo } from './ArthDrishtiLogo';
 
 interface LoginViewProps {
   onSuccessfulLogin: (userName?: string) => void;
@@ -129,18 +130,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSuccessfulLogin }) => {
 
         {/* Brand Header */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#D9B45B] to-[#F3D58A] flex items-center justify-center font-black text-[#012B26] text-xl shadow-lg">
-              अ
-            </span>
-            <div>
-              <span className="font-serif font-bold text-2xl tracking-wide text-white">
-                Arthdrishti
-              </span>
-              <span className="block text-[11px] uppercase tracking-widest text-[#D9B45B] font-semibold">
-                Financial Flight Simulator
-              </span>
-            </div>
+          <div className="max-w-[300px]">
+            <ArthDrishtiLogo variant="sidebar" className="w-full" />
           </div>
 
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mt-10 leading-[1.15] text-[#FAF4E7] tracking-tight">

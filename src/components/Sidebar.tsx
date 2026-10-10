@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { PageId } from '../types';
+import { ArthDrishtiLogo } from './ArthDrishtiLogo';
 
 interface SidebarProps {
   currentPage: PageId;
@@ -55,32 +56,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Sidebar container */}
+      {/* Sidebar container - Locked static on desktop, full height */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-72 md:w-64 lg:w-72 flex flex-col justify-between p-4 md:p-5 rounded-none md:rounded-3xl bg-linear-to-b from-[#064E49] via-[#043E3A] to-[#012B26] text-[#F7F2E6] shadow-2xl transition-transform duration-300 ease-out md:translate-x-0 ${
+        className={`fixed md:relative inset-y-0 left-0 z-50 w-72 md:w-60 lg:w-68 xl:w-72 flex flex-col justify-between p-4 md:p-5 rounded-none md:rounded-3xl bg-linear-to-b from-[#064E49] via-[#043E3A] to-[#012B26] text-[#F7F2E6] shadow-2xl transition-transform duration-300 ease-out md:translate-x-0 h-full shrink-0 select-none ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex flex-col min-h-0">
-          {/* Brand header */}
-          <div className="flex items-center justify-between pb-4 border-b border-[#D9B45B]/20">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#D9B45B] to-[#F3D58A] flex items-center justify-center font-black text-[#012B26] text-lg shadow-md">
-                  अ
-                </span>
-                <span className="font-serif font-bold text-xl tracking-wide text-white drop-shadow-sm">
-                  Arthdrishti
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-widest text-[#D9B45B] mt-1 font-semibold">
-                Financial Flight Simulator
-              </span>
+        <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+          {/* Brand header with Official ArthDrishti Logo */}
+          <div className="flex items-center justify-between pb-3.5 border-b border-[#D9B45B]/20 shrink-0">
+            <div className="w-full pr-1">
+              <ArthDrishtiLogo variant="sidebar" className="w-full max-w-[230px]" />
             </div>
 
             <button
               onClick={onCloseMobile}
-              className="md:hidden p-1.5 rounded-lg text-[#F7F2E6]/80 hover:text-white hover:bg-white/10"
+              className="md:hidden p-1.5 rounded-lg text-[#F7F2E6]/80 hover:text-white hover:bg-white/10 shrink-0 ml-1 cursor-pointer"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />

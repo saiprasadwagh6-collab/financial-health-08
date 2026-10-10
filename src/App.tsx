@@ -271,10 +271,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen p-2 sm:p-4 lg:p-6 flex flex-col justify-between">
+    <div className="h-screen w-screen overflow-hidden p-2 sm:p-3 lg:p-4 flex flex-col justify-between box-border bg-[#EEE4CD]">
       {/* Main Shell Card */}
-      <div className="w-full max-w-[1720px] mx-auto min-h-[calc(100vh-3rem)] rounded-3xl md:rounded-[36px] bg-gradient-to-b from-[#FCF9F1] to-[#F7F2E6] border border-[#E8DDC4] shadow-2xl p-4 sm:p-6 lg:p-7 flex flex-col md:flex-row gap-6 relative">
-        {/* Sidebar */}
+      <div className="w-full max-w-[1760px] mx-auto h-full rounded-3xl md:rounded-[36px] bg-gradient-to-b from-[#FCF9F1] to-[#F7F2E6] border border-[#E8DDC4] shadow-2xl p-3 sm:p-5 lg:p-6 flex flex-col md:flex-row gap-4 lg:gap-6 relative overflow-hidden box-border">
+        {/* Sidebar - Locked static on the left palette */}
         <Sidebar
           currentPage={currentPage}
           onNavigate={handleNavigate}
@@ -284,40 +284,42 @@ export default function App() {
           onLogout={() => setIsAuthMode(true)}
         />
 
-        {/* Content Area */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between space-y-6">
-          <Header
-            pageTitle={pageHeadings[currentPage][0]}
-            pageSubtitle={pageHeadings[currentPage][1]}
-            onOpenMobileNav={() => setIsMobileNavOpen(true)}
-            notifications={state.notifications}
-            onSelectNotification={(n) => {
-              handleNavigate(n.page);
-            }}
-            onMarkAllRead={() => {
-              setRawState((prev) => ({
-                ...prev,
-                notifications: prev.notifications.map((item) => ({ ...item, unread: false })),
-              }));
-            }}
-            transactions={state.transactions}
-            goals={state.goals}
-            insights={state.insights}
-            onNavigate={handleNavigate}
-            onSelectTransaction={(t) => {
-              setSelectedTxForDetail(t);
-              handleNavigate('transactions');
-            }}
-            onSelectGoal={(g) => {
-              handleNavigate('goals');
-            }}
-            isAuthMode={isAuthMode}
-            onToggleAuthMode={() => setIsAuthMode(true)}
-            onOpenAccountSetup={() => setIsAccountSetupModalOpen(true)}
-          />
+        {/* Content Area - Right side with fixed header and scrollable views */}
+        <div className="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
+          <div className="shrink-0 pb-3 sm:pb-4">
+            <Header
+              pageTitle={pageHeadings[currentPage][0]}
+              pageSubtitle={pageHeadings[currentPage][1]}
+              onOpenMobileNav={() => setIsMobileNavOpen(true)}
+              notifications={state.notifications}
+              onSelectNotification={(n) => {
+                handleNavigate(n.page);
+              }}
+              onMarkAllRead={() => {
+                setRawState((prev) => ({
+                  ...prev,
+                  notifications: prev.notifications.map((item) => ({ ...item, unread: false })),
+                }));
+              }}
+              transactions={state.transactions}
+              goals={state.goals}
+              insights={state.insights}
+              onNavigate={handleNavigate}
+              onSelectTransaction={(t) => {
+                setSelectedTxForDetail(t);
+                handleNavigate('transactions');
+              }}
+              onSelectGoal={(g) => {
+                handleNavigate('goals');
+              }}
+              isAuthMode={isAuthMode}
+              onToggleAuthMode={() => setIsAuthMode(true)}
+              onOpenAccountSetup={() => setIsAccountSetupModalOpen(true)}
+            />
+          </div>
 
-          {/* Tab Views */}
-          <main className="flex-1 min-w-0">
+          {/* Tab Views - ONLY this right area is scrollable! */}
+          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pr-1 pb-4">
             {currentPage === 'overview' && (
               <OverviewView
                 state={state}
